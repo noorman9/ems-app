@@ -76,6 +76,27 @@
             color: white;
         }
 
+
+        .nav-links a.active {
+            color: #ffffff;
+            background: #374151;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-weight: bold;
+        }
+
+        .nav-links a {
+            padding: 8px 12px;
+            border-radius: 6px;
+            transition: background 0.2s ease;
+        }
+
+        .nav-links a:hover {
+            color: white;
+            background: #374151;
+        }
+
+
         /* =========================
    Layout
 ========================= */
@@ -416,6 +437,205 @@
                 grid-template-columns: 1fr;
             }
         }
+
+
+        /* Dashboard improvement */
+        .dashboard-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 20px;
+            margin-bottom: 28px;
+        }
+
+        .dashboard-header h1 {
+            margin: 0 0 8px;
+        }
+
+        .dashboard-date {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            padding: 12px 16px;
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            white-space: nowrap;
+        }
+
+        .dashboard-date span,
+        .summary-caption,
+        .section-description,
+        .table-secondary {
+            color: #6b7280;
+            font-size: 13px;
+        }
+
+        .dashboard-date strong {
+            font-size: 14px;
+        }
+
+        .summary-card {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .summary-icon {
+            width: 46px;
+            height: 46px;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 10px;
+            font-size: 13px;
+            font-weight: bold;
+        }
+
+        .icon-equipment {
+            background: #dbeafe;
+            color: #1d4ed8;
+        }
+
+        .icon-maintenance {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .icon-spare-parts {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .icon-users {
+            background: #ede9fe;
+            color: #6d28d9;
+        }
+
+        .summary-card .card-value {
+            margin-bottom: 4px;
+        }
+
+        .summary-caption {
+            font-size: 12px;
+        }
+
+        .section-heading {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 18px;
+        }
+
+        .section-heading h2 {
+            margin: 0 0 6px;
+        }
+
+        .section-description {
+            margin: 0;
+        }
+
+        .status-item>span {
+            display: flex;
+            align-items: center;
+            gap: 9px;
+        }
+
+        .status-dot {
+            width: 9px;
+            height: 9px;
+            border-radius: 50%;
+        }
+
+        .dot-scheduled {
+            background: #6366f1;
+        }
+
+        .dot-progress {
+            background: #f59e0b;
+        }
+
+        .dot-completed {
+            background: #16a34a;
+        }
+
+        .alert-label {
+            padding: 5px 9px;
+            border-radius: 6px;
+            background: #ffedd5;
+            color: #9a3412;
+            font-size: 11px;
+            font-weight: bold;
+            white-space: nowrap;
+        }
+
+        .low-stock-name {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            gap: 8px;
+            margin-bottom: 10px;
+        }
+
+        .stock-progress {
+            height: 6px;
+            margin-bottom: 8px;
+            overflow: hidden;
+            background: #fed7aa;
+            border-radius: 999px;
+        }
+
+        .stock-progress-bar {
+            height: 100%;
+            width: var(--stock-percentage, 0%);
+            background: #ea580c;
+            border-radius: 999px;
+        }
+
+        .low-stock-item small {
+            color: #9a3412;
+        }
+
+        .table-wrapper {
+            width: 100%;
+            overflow-x: auto;
+        }
+
+        .table-secondary {
+            margin-top: 4px;
+        }
+
+        .table-empty {
+            padding: 24px;
+            text-align: center;
+        }
+
+        @media (max-width: 800px) {
+            .dashboard-header {
+                align-items: flex-start;
+            }
+
+            .summary-card {
+                align-items: flex-start;
+            }
+        }
+
+        @media (max-width: 500px) {
+            .dashboard-header {
+                flex-direction: column;
+            }
+
+            .dashboard-date {
+                width: 100%;
+            }
+
+            .section-heading {
+                align-items: flex-start;
+                flex-direction: column;
+            }
+        }
     </style>
 </head>
 
@@ -431,32 +651,39 @@
 
             <div class="nav-links">
 
-                <a href="{{ route('dashboard') }}">
+                <a
+                    href="{{ route('dashboard') }}"
+                    class="{{ request()->routeIs('dashboard') ? 'active' : '' }}">
                     Dashboard
                 </a>
 
-                <a href="{{ route('equipment.index') }}">
+                <a
+                    href="{{ route('equipment.index') }}"
+                    class="{{ request()->routeIs('equipment.*') ? 'active' : '' }}">
                     Equipment
                 </a>
 
-                <a href="{{ route('maintenance.index') }}">
+                <a
+                    href="{{ route('maintenance.index') }}"
+                    class="{{ request()->routeIs('maintenance.*') ? 'active' : '' }}">
                     Maintenance
                 </a>
 
-                <a href="{{ route('spare-parts.index') }}">
+                <a
+                    href="{{ route('spare-parts.index') }}"
+                    class="{{ request()->routeIs('spare-parts.*') ? 'active' : '' }}">
                     Spare Parts
                 </a>
 
-                <a href="{{ route('stock-movements.index') }}">
+                <a
+                    href="{{ route('stock-movements.index') }}"
+                    class="{{ request()->routeIs('stock-movements.*') ? 'active' : '' }}">
                     Stock
                 </a>
 
                 <form action="{{ url('/logout') }}" method="POST" style="display: inline;">
                     @csrf
-
-                    <button type="submit">
-                        Logout
-                    </button>
+                    <button type="submit">Logout</button>
                 </form>
 
             </div>
