@@ -680,6 +680,11 @@
                     class="{{ request()->routeIs('stock-movements.*') ? 'active' : '' }}">
                     Stock
                 </a>
+                <a
+                    href="{{ route('reports.index') }}"
+                    class="{{ request()->routeIs('reports.*') ? 'active' : '' }}">
+                    Reports
+                </a>
 
                 <form action="{{ url('/logout') }}" method="POST" style="display: inline;">
                     @csrf

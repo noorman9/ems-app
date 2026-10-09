@@ -7,6 +7,7 @@ use App\Http\Controllers\MaintenanceController;
 use App\Http\Controllers\SparePartController;
 use App\Http\Controllers\StockMovementController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\ReportController;
 
 Route::get('/login', [AuthController::class, 'showLogin'])
     ->name('login');
@@ -15,10 +16,6 @@ Route::post('/login', [AuthController::class, 'login']);
 
 Route::post('/logout', [AuthController::class, 'logout'])
     ->middleware('auth');
-
-Route::get('/dashboard', function () {
-    return view('dashboard');
-})->middleware('auth')->name('dashboard');
 Route::resource('equipment', EquipmentController::class)
     ->middleware('auth');
 Route::resource('maintenance', MaintenanceController::class)
@@ -51,3 +48,6 @@ Route::post(
 Route::get('/dashboard', [DashboardController::class, 'index'])
     ->middleware('auth')
     ->name('dashboard');
+Route::get('/reports', [ReportController::class, 'index'])
+    ->middleware('auth')
+    ->name('reports.index');
