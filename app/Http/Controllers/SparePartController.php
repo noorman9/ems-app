@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\SparePart;
+use App\Models\StockMovement;
+use Illuminate\Support\Facades\DB;
 
 class SparePartController extends Controller
 {
@@ -28,24 +30,42 @@ class SparePartController extends Controller
     /**
      * Store a newly created resource in storage.
      */
+
     public function store(Request $request)
     {
         $validated = $request->validate([
             'code' => ['required', 'string', 'max:255', 'unique:spare_parts,code'],
             'name' => ['required', 'string', 'max:255'],
             'category' => ['required', 'string', 'max:255'],
-            'stock' => ['required', 'numeric', 'min:0'],
+            'stock' => ['required', 'numeric', 'min:0', 'decimal:0,2'],
             'unit' => ['required', 'string', 'max:50'],
-            'minimum_stock' => ['required', 'numeric', 'min:0'],
+            'minimum_stock' => ['required', 'numeric', 'min:0', 'decimal:0,2'],
             'description' => ['nullable', 'string'],
         ]);
 
-        SparePart::create($validated);
+        DB::transaction(function () use ($validated, $request) {
+            $sparePart = SparePart::create($validated);
+
+            $initialStock = $validated['stock'];
+
+            // Catat stok awal hanya jika jumlahnya lebih dari nol.
+            if (bccomp((string) $initialStock, '0', 2) > 0) { {
+                    StockMovement::create([
+                        'spare_part_id' => $sparePart->id,
+                        'user_id' => $request->user()->id,
+                        'type' => 'in',
+                        'quantity' => $initialStock,
+                        'note' => 'Stok awal saat registrasi',
+                    ]);
+                }
+            }
+        });
 
         return redirect()
             ->route('spare-parts.index')
             ->with('success', 'Spare part berhasil ditambahkan.');
     }
+
 
     /**
      * Display the specified resource.
@@ -78,7 +98,12 @@ class SparePartController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'category' => ['required', 'string', 'max:255'],
             'unit' => ['required', 'string', 'max:50'],
-            'minimum_stock' => ['required', 'numeric', 'min:0'],
+            'minimum_stock' => [
+                'required',
+                'numeric',
+                'min:0',
+                'decimal:0,2',
+            ],
             'description' => ['nullable', 'string'],
         ]);
 
@@ -92,8 +117,21 @@ class SparePartController extends Controller
     /**
      * Remove the specified resource from storage.
      */
+
     public function destroy(SparePart $sparePart)
     {
+        if ($sparePart->stockMovements()->exists()) {
+            return back()->withErrors([
+                'delete' => 'Spare part tidak dapat dihapus karena memiliki riwayat pergerakan stok.',
+            ]);
+        }
+
+        if ($sparePart->maintenances()->exists()) {
+            return back()->withErrors([
+                'delete' => 'Spare part tidak dapat dihapus karena tercatat dalam maintenance.',
+            ]);
+        }
+
         $sparePart->delete();
 
         return redirect()

@@ -8,6 +8,7 @@ use App\Models\Equipment;
 use App\Models\User;
 use App\Models\SparePart;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 
 class MaintenanceController extends Controller
@@ -113,6 +114,12 @@ class MaintenanceController extends Controller
             'cost' => ['nullable', 'numeric', 'min:0'],
         ]);
 
+        if ($maintenance->status !== 'scheduled') {
+            return back()->withErrors([
+                'status' => 'Maintenance hanya dapat diedit jika statusnya scheduled.',
+            ]);
+        }
+
         $maintenance->update($validated);
 
         return redirect()
@@ -123,8 +130,15 @@ class MaintenanceController extends Controller
     /**
      * Remove the specified resource from storage.
      */
+
     public function destroy(Maintenance $maintenance)
     {
+        if ($maintenance->status !== 'scheduled') {
+            return back()->withErrors([
+                'status' => 'Maintenance hanya dapat dihapus sebelum pekerjaan dimulai.',
+            ]);
+        }
+
         $maintenance->delete();
 
         return redirect()
@@ -168,16 +182,40 @@ class MaintenanceController extends Controller
     {
         $validated = $request->validate([
             'spare_part_id' => ['required', 'exists:spare_parts,id'],
-            'quantity' => ['required', 'numeric', 'gt:0'],
+            'quantity' => ['required', 'numeric', 'gt:0', 'decimal:0,2'],
         ]);
 
+        // Pastikan maintenance sedang berlangsung.
+        if ($maintenance->status !== 'in_progress') {
+            return back()->withErrors([
+                'status' => 'Spare part hanya dapat digunakan saat maintenance sedang berlangsung.',
+            ]);
+        }
+
+
         DB::transaction(function () use ($validated, $maintenance, $request) {
+            $maintenance = Maintenance::whereKey($maintenance->id)
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            if ($maintenance->status !== 'in_progress') {
+                throw ValidationException::withMessages([
+                    'status' => 'Spare part hanya dapat digunakan saat maintenance sedang berlangsung.',
+                ]);
+            }
+
             $sparePart = SparePart::whereKey($validated['spare_part_id'])
                 ->lockForUpdate()
                 ->firstOrFail();
 
-            if ($sparePart->stock < $validated['quantity']) {
-                throw \Illuminate\Validation\ValidationException::withMessages([
+            if (
+                bccomp(
+                    (string) $sparePart->stock,
+                    (string) $validated['quantity'],
+                    2
+                ) < 0
+            ) {
+                throw ValidationException::withMessages([
                     'quantity' => 'Stock tidak mencukupi.',
                 ]);
             }
@@ -192,23 +230,16 @@ class MaintenanceController extends Controller
 
                 $maintenance->spareParts()->updateExistingPivot(
                     $sparePart->id,
-                    [
-                        'quantity' => $newQuantity,
-                    ]
+                    ['quantity' => $newQuantity]
                 );
             } else {
                 $maintenance->spareParts()->attach(
                     $sparePart->id,
-                    [
-                        'quantity' => $validated['quantity'],
-                    ]
+                    ['quantity' => $validated['quantity']]
                 );
             }
 
-            $sparePart->decrement(
-                'stock',
-                $validated['quantity']
-            );
+            $sparePart->decrement('stock', $validated['quantity']);
 
             $sparePart->stockMovements()->create([
                 'user_id' => $request->user()->id,
@@ -217,6 +248,7 @@ class MaintenanceController extends Controller
                 'note' => 'Digunakan untuk maintenance #' . $maintenance->id,
             ]);
         });
+
 
         return back()->with(
             'success',

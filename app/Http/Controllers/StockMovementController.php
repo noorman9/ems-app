@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use App\Models\SparePart;
 use App\Models\StockMovement;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 class StockMovementController extends Controller
 {
@@ -24,38 +26,46 @@ class StockMovementController extends Controller
         return view('stock_movements.create', compact('spareParts'));
     }
 
+
     public function store(Request $request)
     {
         $validated = $request->validate([
             'spare_part_id' => ['required', 'exists:spare_parts,id'],
             'type' => ['required', 'in:in,out'],
-            'quantity' => ['required', 'numeric', 'gt:0'],
+            'quantity' => ['required', 'numeric', 'gt:0', 'decimal:0,2'],
             'note' => ['nullable', 'string'],
         ]);
 
-        $sparePart = SparePart::findOrFail($validated['spare_part_id']);
+        DB::transaction(function () use ($request, $validated) {
+            $sparePart = SparePart::whereKey($validated['spare_part_id'])
+                ->lockForUpdate()
+                ->firstOrFail();
 
-        if (
-            $validated['type'] === 'out' &&
-            $sparePart->stock < $validated['quantity']
-        ) {
-            return back()
-                ->withErrors([
+            $quantity = $validated['quantity'];
+
+            if (
+                $validated['type'] === 'out' &&
+                bccomp((string) $sparePart->stock, (string) $quantity, 2) < 0
+            ) {
+                throw ValidationException::withMessages([
                     'quantity' => 'Stock tidak mencukupi.',
-                ])
-                ->withInput();
-        }
+                ]);
+            }
 
-        StockMovement::create([
-            ...$validated,
-            'user_id' => $request->user()->id,
-        ]);
+            if ($validated['type'] === 'in') {
+                $sparePart->increment('stock', $quantity);
+            } else {
+                $sparePart->decrement('stock', $quantity);
+            }
 
-        if ($validated['type'] === 'in') {
-            $sparePart->increment('stock', $validated['quantity']);
-        } else {
-            $sparePart->decrement('stock', $validated['quantity']);
-        }
+            StockMovement::create([
+                'spare_part_id' => $sparePart->id,
+                'user_id' => $request->user()->id,
+                'type' => $validated['type'],
+                'quantity' => $validated['quantity'],
+                'note' => $validated['note'] ?? null,
+            ]);
+        });
 
         return redirect()
             ->route('spare-parts.index')
