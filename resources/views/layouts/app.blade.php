@@ -295,6 +295,17 @@
             color: #991b1b;
         }
 
+
+        .alert ul {
+            margin: 0;
+            padding-left: 20px;
+        }
+
+        .alert li+li {
+            margin-top: 4px;
+        }
+
+
         /* =========================
    Dashboard
 ========================= */
