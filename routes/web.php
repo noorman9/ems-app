@@ -8,7 +8,15 @@ use App\Http\Controllers\ReportController;
 use App\Http\Controllers\SparePartController;
 use App\Http\Controllers\StockMovementController;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Auth;
 
+Route::get('/', function () {
+    if (Auth::check()) {
+        return redirect()->route('dashboard');
+    }
+
+    return redirect()->route('login');
+});
 // Authentication
 Route::get('/login', [AuthController::class, 'showLogin'])
     ->name('login');
